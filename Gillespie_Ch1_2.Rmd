@@ -1,0 +1,444 @@
+---
+title: "Learnin' Pop Gen"
+output: html_document
+---
+###Simon Renny-Byfield, UC Davis, Oct '14###
+
+This is HTML document generated using the R Markdown function in RStudio. This is generated in order to document my attempt to learn some Pop Gen! I will go thru some of the problems in two Pop Gen books, Gillespie and Hamilton. I'll write some R code to graph what the require and try to write some useful functions in order to help me understand pop gen theory. Wish me luck. 
+<br>
+<br>
+
+Population Genetics: A concise guide, Gillespie
+===========
+
+
+Chapter One: Genetic Variation
+-----------
+
+###Problems###
+
+**1.1** How many gentypes are there at a locus with *n* alleles.
+
+$$
+  \begin{align}
+  number of genetypes = n + n(n-1)/2 \\
+  \end{align}
+$$
+
+* There are *n* **homozygous** gentypes.
+* and n* x (*n*-1) **hetrozygous** genetypes (remember *n* cannot be heterozygous with itselfm hence *n-1*).
+* Devide by two for heterozygous genetypes to account for combination of alleles "both ways round". i.e AB is the same as BA. <br>
+
+<br>
+<br>
+**1.2** Calcualte the frequency of the three alkaline phosphotase alleles in the English population.
+
+Here is a data table of all the gentype frequencies
+
+| Genetype  | Count  | 
+|---|---|
+| SS  | 141 |   
+| SF  | 111 | 
+| FF  | 28  | 
+| SI  | 32  |
+| FI  | 15 |
+| II  | 5 |
+|*total*  | 332 |
+
+* Frequency of *S* = ((141 x 2) + 111 + 32)/(2 x 332) = `r (( 141 * 2 ) + 111 + 32)/(2*332)`
+
+* Frequency of *F* = ((28 x 2) + 111 + 15)/(2 x 332) = `r (( 28 * 2 ) + 111 + 15)/(2*332)`
+
+* Frequency of *I* = ((5 x 2) + 32 + 15)/(2 x 332) = `r ((5 * 2 ) + 32 + 15)/(2*332)`
+
+Double check the calculations by summing the frequency of each allele, making sure it is equal to one:
+
+* 0.6400602 + 0.2740964 + 0.0858434 = **`r 0.6400602 + 0.2740964 + 0.0858434`**
+
+<br>
+<br>
+**1.4** Graph the frequencies of homozygotes and heterozygotes and various allele frequencies, *p*. At what *p* is the frequency of heterozygotes highest?
+
+
+```{r}
+#first make a sequence of frequencies from 0 to 1
+freqs<-seq(0,1,by=0.01)
+#create some empty variables to fill
+Het<-NULL
+Hom<-NULL
+#now for each of these frequencies of p calculate the proportion of hetero and homozygotes
+for ( p in freqs ) {
+#given the frequency of p, calculate g
+q<-1-p
+#calc the frequency of hetero
+fHet<-2*p*q
+#ditto for Homo
+fHom<-p^2+q^2
+#attribute those values to the appropriate vector
+Het<-c(Het,fHet)
+Hom<-c(Hom,fHom)
+}#
+```
+
+
+```{r, echo=FALSE}
+plot(freqs,freqs, type = "n", xlab="Allele frequency", ylab = "Genotype frequency")
+lines(freqs,Het , col = "red",lwd=3)
+lines(freqs,Hom ,  col = "green",lwd=3)
+legend(0.4,0.9,legend=c("Heterozygotes","Homozygotes"), col = c("red","green"), pch = 15)
+```
+
+<br>
+<br>
+**1.5** Graph the ratio of A1A2 hetrozygotes vs A2A2 homozygotes using exact and approximate formulae.
+
+* The exact formula for A1A2 heterozygotes is 2*pq*/*q*^2^
+* The approximation is 2/*q*
+
+This is because when q is small p ~ 1.
+
+We can use the code as before but slightly modified.
+
+```{r}
+#first make a sequence of frequencies from 0 to 1
+freqs<-seq(0,1,by=0.01)
+#create some empty variables to fill
+exact<-NULL
+approx<-NULL
+#now for each of these frequencies of p calculate the proportion of hetero and homozygotes
+for ( p in freqs ) {
+#given the frequency of p, calculate g
+q<-1-p
+#calc the ratio of hetero/Homo, for exact and for approx formulae
+ratio<-(2*p)/q
+approxRatio<-2/q
+#attribute those values to the appropriate vector
+exact<-c(exact,ratio)
+approx<-c(approx,approxRatio)
+}#
+```
+
+```{r, echo=FALSE}
+plot(freqs,exact, type = "n", xlab="Allele frequency", ylab = "Genotype ratio")
+lines(freqs,exact , col = "red",lwd=3)
+lines(freqs,approx ,  col = "green",lwd=3)
+legend("topleft",legend=c("exact","approx"), col = c("red","green"), pch = 15)
+```
+
+<br>
+<br>
+**1.6** Perform a chi sq test of the genotype frequencies in the above table, expected is HW.
+
+In this case we can use R to perform the ChiSq test...
+
+```{r}
+#the frequency of each allele
+S<-(( 141 * 2 ) + 111 + 32)/(2*332)
+F<-(( 28 * 2 ) + 111 + 15)/(2*332)
+I<-((5 * 2 ) + 32 + 15)/(2*332)
+#then generate the table of data
+genoData<-data.frame("Geno"=c("SS","SF","FF","SI","FI","II"), "counts"=c(141,111,28,32,15,5),"expected"=c((S^2)*332,(2*S*F)*332,(F^2)*332,(2*S*I)*332,(2*F*I)*332,(I^2)*332), "expFreq"=c((S^2)*332,(2*S*F)*332,(F^2)*332,(2*S*I)*332,(2*F*I)*332,(I^2)*332)/332)
+genoData
+#perform a chi sq test
+test<-chisq.test(genoData$counts,p=genoData$expFreq)
+test
+
+```  
+ But at the moment this is wrong, there are too many degrees of freedom. Gillespie writes that "as the expected numbers are calculated from the observed allele frequencies we lose a degree of freedom for each of the allele frequency calculations". This is important, but I need to know more. For example, how do I change this in R to get the correct value? I suppose you can look up the p-value based on the reported statistic and known degrees of freedom (df=3).  
+ 
+
+
+Chapter Two: Genetic Drift
+-----------
+
+**2.2** Write a computer simulation that mimics genetic drift
+
+Here is a function written in R that will simualte, and plot allele frequency changes dues to drift
+
+```{r}
+#a simple function to mimic genetic drift.
+drift<-function(N=20,p=0.5,gen=20,reps=10, w=1) {
+  #set up a matrix to fill
+	m<-matrix(nrow = gen, ncol = reps, byrow = T)
+	#for each rep
+	for ( j in 1:reps ) {
+		p1<-p
+		#for each generation
+		for ( i in 1:gen) {
+			A<-rbinom(1,size=2*N,p1)
+			p1<-A/(2*N)
+			p1<-p1*w
+			if ( p1 > 1) {p1=1}
+			m[i,j]<-p1
+		}#
+	}#for
+	#for each column find if it's fixed or lost
+	lost<-do.call(pmin, lapply(1:nrow(m), function(i)m[i,]))
+	fixed<-do.call(pmax, lapply(1:nrow(m), function(i)m[i,]))
+	lost<-length(lost[lost==0])
+	fixed<-length(fixed[fixed==1])
+	xscale<-seq(0,dim(m)[1])
+	m<-rbind(rep(p,dim(m)[2]),m)
+	pl<-plot(xscale,m[,1], ylim = c(0,1), type = "n", ylab = "Allele frequency",
+		xlab="generations", main = paste("f(A)=",p ,"; Population size=",N ,"; reps =", reps, "; lost=", lost, "; fixed=" , fixed, "; w = ", w), xlim =c(0,dim(m)[1]))
+	pl<-matlines(xscale, m, col = "black", lty = 1, lwd = 0.6)
+	ave<-rowMeans(m)
+	pl<-lines(xscale, ave , col = "red", lwd = 2)
+	z<-list("matrix"=m,
+	"plot"=pl, "mean"=ave)
+	return(z)
+}#drift
+
+test<-drift(reps = 10, p =0.5, gen=1000, N=1000, w= 1.001)
+
+```
+
+**2.3** Convince yourself that the average time to homozygous population is 2 generations of random mating, when N is one. What about populations of larger size. What happens then?
+
+Make a computer program to simulate this. Try to use simple probability theory to assess the average time to Homozygosity in a population of random mating, with size N. The simulation might use a geometric random variable.
+
+```{r}
+t<-NULL
+fA<-0.5
+for ( i in 1:1000) {
+  #find the number of failures before success
+  x<-rgeom(n=1, prob= fA)
+  #so the first success is x+1, success being a homozygote
+  x<-x+1
+  t<-c(t,x)
+}
+hist(t, col= "red", main = paste("Time to Homozygosity in pop of N=1, Mean=", summary(t)[[4]]))
+summary(t)
+```
+
+***The decay of heterozygosity***
+
+Gillespie notes that genetic drift is hard to quantify in populations of more than one individual. It is useful to think of..
+
+* The decay of heterozygosity: ***G***<sub>t</sub>
+* and the probability of being heterozygous after *t* generations: H<sub>t</sub> = H<sub>0</sub> ( 1- 1/ (2N) )^t^
+where *H*<sub>0</sub> is the intial likelihood of being heterozygous and *t* is number of generations.
+
+<br>
+
+* ***G* is actaully the probability of two alleles being different by origin but identical by state (i.e. A random draw of two alleles, without replacement, producing a homozygote) ** <br><br>
+&nbsp;&nbsp;&nbsp;- No genetic varaition then *G* = 1,<br>
+&nbsp;&nbsp;&nbsp;- Total differenciation of alleles then *G* = 0.
+
+The new value of *G* after one round on random mating is:
+
+* *G*' = 1/2N + ( 1 - 1/(2N) ) *G*
+
+**2.4** Calculate *G*<sub>t</sub> and *H*<sub>t</sub> with 100 generations, with *N*=1, 10, 100, 1,000, 1,000,000, where *H*<sub>0</sub> = 1 (i.e. fA= 0.5)
+
+First try *H*<sub>t</sub>:
+
+Remember H<sub>t</sub> = H<sub>0</sub> ( 1- 1/(2N) )^t^
+
+```{r}
+
+gen<-10000
+Ns<-c(1,10,100,1000,10000)
+Htotal<-NULL
+Ht<-NULL
+for ( N in Ns) {
+  #for each of the population sizes generate a vector of data
+  H0<-1
+  Hseries<-NULL
+  for ( i in 1:gen ) {
+    Ht<-H0*(1 - (1/(2*N)) )
+    #add Ht to a vector
+    Hseries<-c(Hseries,Ht)
+    H0<-Ht
+  }
+  Htotal<-cbind(Htotal,Hseries)
+}#for
+
+
+cols<-c("red","blue","green","yellow","purple")
+plot(rep(1:gen,5),Htotal, main="H over generations", type="n", ylab = "H", xlab="generations")
+for ( i in 1:length(Ns)) {
+  cols[i]
+lines(1:gen,Htotal[,i], col=cols[i], lwd = 3)
+}#for
+legend("topright", legend = Ns, col=c("red","blue","green","yellow","purple"), pch =15, title="population size"  )
+```
+<br>
+***And no look and the inverse, G***
+
+```{r}
+Gtotal<-1-Htotal
+main="G over generations"
+plot(rep(1:gen,5),Gtotal, main=main, type="n", ylab = "H", xlab="generations")
+for ( i in 1:length(Ns)) {
+  cols[i]
+lines(1:gen,Gtotal[,i], col=cols[i], lwd = 3)
+}#for
+legend("topright", legend = Ns, col=c("red","blue","green","yellow","purple"), pch =15, title="population size"  )
+```
+
+Gillespie asks what is the "half life" of genetic variation in large popultaions i.e. how long does it take to lose half the heterzygosity at a given locus.
+
+* Use the actaul equation *t*<sub1/2</sub> = -ln(2) / ln( 1- 1/(2N) ) 
+* And the approximate equation: *t*<sub1/2</sub> = 2N ln(2)
+
+```{r}
+#for population sizes
+seqs<-seq(from=1,to=1000000, by=1000)
+#create some empty variables
+tActual<-NULL
+tApprox<-NULL
+for ( N in seqs ) {
+  #the actual equation
+  t<- -log(2) / log( 1- 1/(2*N) )
+  tActual<-c(tActual,t)
+  #the approximate equation
+  tApp<- 2*N * log(2)
+  tApprox<-c(tApprox,tApp)
+}#for
+
+plot(seqs,tApprox, type = "n", ylab = "t1/2", xlab = "population size")
+lines(seqs,tActual, lwd= 3 , lty = "solid")
+lines(seqs,tApprox, lwd= 3 , lty = "dashed", col = "red")
+max(tActual)
+```
+
+Gillespie also points out that the probability of fixation of an allele is simply the frequency of that allele. For example if there are i copies of allele A<sub>1</sub>, then the probablilty of fixing A<sub>1</sub> is:
+
+* $$\frac{i}{2N}$$
+
+The probability of fixation for a given allele is it's current frequency:
+
+* $$π(p) = p$$
+
+
+***Mutation and drift***
+
+Genetic drift theory suggest that the process of random segregation will eventualy remove all genetic vairation from a population. How is it then the natural population are not genetically uniform. The answer is that mutation introduces new variation, most of which is subsequently removed by the processes of drift.
+
+Imortantly mutation is introduced into a population at rate 2*N*μ where μ is the numtation rate per individual. For example you have 2*N* alleles and they *chance* of a mutation in each individual allele is μ. This is not the rate of fixation, simply the rate at which new variants arise.
+
+* $$2Nμ$$
+
+This model of mutations assumes that new mutations appear in an allele in a gamte at rate μ. An additional assumption is that each new mutation is unique and has never been seen before (this is *almost* true as re-current mutations are rare, but do happen). This is there for called the **"infinate sites model"**.<br><br>.
+
+The chance of two alleles being different by origin (i.e. not directly decended from the same ancestral allele) is:
+
+
+$${G}=\frac{1}{1 + 4Nμ}$$
+
+Now think about *G* whose definition is:<br><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; The probability of two alleles being different by origin but identical by state (i.e. A random draw of two alleles, without replacement, producing a homozygote).<br><br>
+
+The value of *G* changes after one round of random mating **and** mutation:
+
+* $${G}'=( 1-μ )^2\bigg[\frac{1}{2N} + ( 1 - \frac{1}{2N})G\bigg]$$
+
+The function ( 1-μ ) is simply the chance of an allele not mutating, and so $( 1-μ )^2$ is the chance that either of the alleles have not mutated.
+
+After some re-arrangemnt, the change in *H* (heterozygosity) after one generation of random mating is:
+
+$$\Delta{H}\approx - \frac{1}{2N}H+2μ(1-H)$$
+
+**2.8** graph $\hat{G}$ as a function of 4*N*μ, what is a good approximation of the average *H* in humans (which is 0.05 according to Gillespie)?
+
+* use: $$\hat{G}=\frac{1}{1+4Nμ}$$
+
+This equation is the probability that two alleles are differnt by origin but identical by state. i.e the chance of drawing a homoztgote (thus is simply put the expected homozygosity taking mutation into account).
+
+```{r}
+
+#make a series of 4Nμ values assuming a static μ of 10^-6 and a population sizes between 10 .. 500,000.
+popSize<-seq(from=10, to=5000000, by = 1000)
+u<-1*10^-6
+#make some emty vectors
+GG<-NULL
+Nu<-NULL
+for ( size in popSize) {
+  G<- 1 / (1+(4*size*u))
+  GG<-c(GG,G)
+  Nu<-c(Nu, 4*size*u)
+}#for
+
+plot(Nu,GG,type = "n", xlab="4Nu", ylab="hat G", main="change in G (expected homozygosity)")
+lines(Nu,GG, lwd=3)
+legend("topright",legend=paste("mutation rate = ", u))
+
+````
+
+Gillespie then goes on to describe the change in heterozygodity (*H*) and a interplay bewtween the rate of loss of alleles, via genetic drift and the intriduction of new variation via mutation:
+
+* $$\Delta{H}\approx-\frac{1}{2N}H + 2μ( 1- H )$$
+
+This equation neatly comes in two parts (as described above) and those are:
+
+* the **loss of varaition** due to drift; $$-\frac{1}{2N}H$$
+
+* and the gain of **new varaition** by mutation $$2μ(1-H)$$
+
+**2.9**
+
+Now, let's graph these as a function of $H$ to the see the impact of current heterozygosity on $\Delta{H}$ in a population of a million individuals.
+
+```{r}
+varH<-seq(from=0,to=1, by =0.01)
+N<-10000
+u<-1*10^-4
+ddrift<-NULL
+for ( H in varH ) {
+  drift<- -(1/(2*N))*H
+  ddrift<-c(ddrift,drift)
+}#for
+plot(varH,abs(ddrift),main="loss due to drift", xlab="value of current heterozygosity", ylab="loss dues to drift", type= "n")
+lines(varH,abs(ddrift), lwd= 3, col = "blue")
+```
+
+
+Now lets look at the impact of mutation on genetic variation
+
+```{r}
+mmut<-NULL
+for ( H in varH ) {
+  mut<-2*u*(1-H)
+  mmut<-c(mmut,mut)
+}#for
+plot(varH,abs(mmut),main="gain due to mutation", xlab="value of current heterozygosity", ylab="loss dues to drift", type= "n")
+lines(varH,abs(mmut), lwd= 3, col = "red")
+```
+
+Now let's plot them together...
+
+```{r}
+
+plot(rep(varH,2),c(mmut,abs(ddrift)),main="change in genetic varaition with drift and mutation",
+     xlab="current hetrozygosity", ylab="absolute change in H" ,type = "n")
+
+lines(varH,mmut, lwd= 3, col = "red")
+lines(varH,abs(ddrift), lwd= 3, col = "blue")
+
+legend("top",legend = c("loss due to drift", "gain due to mutation"), pch = 15, col=c("blue","red"))
+```
+Now plot $\Delta{H} considering both mutation and drift, over varying levels of current heterozygosity.
+
+```{r}
+plot(varH,(mmut+ddrift),main="change in genetic varaition with drift and mutation",
+     xlab="current hetrozygosity", ylab="absolute change in H" ,type = "n")
+lines(varH,mmut+ddrift,lwd=3,col="darkgreen")
+abline(0,0)
+
+```
+<br><br>
+***Molecular Evolution***
+
+Gillespie discusses the use of substitutions between species as an estimator of mutation rate. For example, if there are 36 substitutions across a sequence 768 nucleotides long, and the species have been seperated by 23 million years, then the substitution rate can be measured as:
+
+* $$\rho=\frac{36}{{2} \times {2.3\times10^7}} = `r (36) / (2*(2.3*10^7))`$$
+
+We use a factor of two in teh denominator so as to take account of the time along **BOTH** branches of the tree since the species seperated. Alternatively, instead of looking at the rate over the whole locus, we can caluclate substitution rate per site. For, exmaple there are 36 substitutions, and 768 sites. We can use the substitution rate for the whole locus and devide by the number of sites..
+
+* $$\rho=\frac{`r (36) / (2*(2.3*10^7))`}{768} = `r ((36) / (2*(2.3*10^7)) )/ 768`$$
+
+These units are in substitutions per year and this value is approximately typical for most species.<br>
+
+Losts of mathematical models use substitutions per generations, **DO NOT CONFUSE THESE VERY DIFFERENT MEASURES OF SUBSTITUTION RATE**.
+
