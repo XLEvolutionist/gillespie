@@ -320,7 +320,7 @@ Imortantly mutation is introduced into a population at rate 2*N*μ where μ is t
 
 * $$2Nμ$$
 
-This model of mutations assumes that new mutations appear in an allele in a gamte at rate μ. An additional assumption is that each new mutation is unique and has never been seen before (this is *almost* true as re-current mutations are rare, but do happen). This is there for called the **"infinate sites model"**.<br><br>.
+This model of mutations assumes that new mutations appear in an allele in a gamte at rate μ. An additional assumption is that each new mutation is unique and has never been seen before (this is *almost* true as re-current mutations are rare, but do happen). This is there for called the **"infinate alleles model"**.<br><br>.
 
 The chance of two alleles being different by origin (i.e. not directly decended from the same ancestral allele) is:
 
@@ -442,3 +442,50 @@ These units are in substitutions per year and this value is approximately typica
 
 Losts of mathematical models use substitutions per generations, **DO NOT CONFUSE THESE VERY DIFFERENT MEASURES OF SUBSTITUTION RATE**.
 
+The rate of substitution is a function of both the rate of mutation and the population size. in fact $\rho = \mu$.
+
+In detail, in a Wright-Fisher population the number of gametes produced in the next generation is $2N$ and for each of the the chance of mutation at a given locus i $\mu$, thus the rate at which mutations occur is:<br>
+* $2N\mu$.
+
+Thus more mutations are generated in large populations, when compared with smaller ones. On average a new mutation has $1/2N$ chance of being fixed (that is the chance of being fixed is the frequency of that allele in the population). So the average rate of substitution $\rho$ is the rate at which new mutations arise multiplied by the rate that they are fixed, so:
+
+* $$\rho=2N\mu\times\frac{1}{2N}$$
+
+Let us try to re-arrange the equation to prove the $\rho=\mu$.
+
+First, it's important to remeber that deviding by $1/2N$ is the same as multiplying by $2N$. So...
+
+$$\rho\times2N=2N\mu$$
+
+Cancel out the $2N$ and we get..
+
+$$\rho=\mu$$
+
+This is one of the most **important** theoretical leaps in population genetics! At this point it is worth mentioning we have not discussed selection at all, and this theoretical framework is based on assumptions of *neutrality*.
+
+Another logical proof: the chance of a new mutation in a given allele is $\mu$ and following $t$ generations there will be $t\mu$ mutations. The rate of accumulation of those numtations is the number of mutatations devided by the number of generations, so:
+
+$$\rho=\frac{t\mu}{t}=\mu$$
+
+The mean number of **mutations** (NOT substitutions) in a lineage is Poisson distributed with mean $t\mu$.
+
+Try tp plot such a distribution.
+
+```{r}
+#the mutation rate
+u<-1*10^-8
+#the number of generations
+t<-100000000
+
+Pdist<-rpois(1000000,lambda=u*t)
+
+hist(Pdist, col = "cyan", main = paste("Poisson distribution with mean=",u*t))
+```
+
+The probability of having $i$ number of mutations in a given one generation is:
+
+* $$\frac{e^{-t\mu} (tu)^{i}}{i!}$$
+
+Do not forget $i!$ is factorial $i$.
+
+The origination process of neutral variation in biological populations is a Poisson process.
