@@ -489,3 +489,123 @@ The probability of having $i$ number of mutations in a given one generation is:
 Do not forget $i!$ is factorial $i$.
 
 The origination process of neutral variation in biological populations is a Poisson process.
+
+***The Neutral Theory of Evolution***
+
+During the 60s and 70s several ideas emerged that suggested most of sequence and/or protein evolution was nuetral. The logic follows that as rates of substitution are so consistent across species, and apprently not subject to the whims of natural selection then most mutations (and substitutions) most be nuetral. 
+
+The observed number of polymorphisms can be used to estimate the effective population size $N$, provided we know the mutation rate (which is the same as the substitution rate).
+
+* $$4N\mu\approx0.1$$
+
+This value of 0.1 matches data seen in electrphoretic examination of heterozygosity in mice by Kimura and colleagues.
+
+This then allows you to re-arrange:
+
+* $$N=\frac{\frac{0.1}{\mu}}{4} = `r ((0.1/(10^-7/2))/4)`$$
+
+Thus we have gained an estimate of effective population size using the mutation rate and the observed number of subsitutions.
+<br><br>
+***The coalescent***
+
+As hinted at above the expected variation under a nutral model of evolution is 
+
+$$\Theta=4N\mu$$.
+
+Coalescent theory uses DNA sequence data to trace back in time the lineages and ancestry of a given poulation of alleles assuming an **infinite-sites/No-recombination model**. When discussing coalescent theory the units of time are always "generations into the past".
+
+![Alt text](/Users/simonrenny-byfield/GitHubRepos/gillespie/coalescent.jpg "A Coalescent model")
+
+
+The mean time to a coalescent reducing i alleles to i-1 alleles is:
+
+* $$E\{T_{i}\}=\frac{4N}{i(i-1)}$$
+
+Of course this prcoess neglects mutations and is simply a mathematical expression of how likely two alleles are to coalesce (i.e share a common ancestor) in the preceeding generation.
+
+Importatly, coalescent theory and the number of segregating sites can be used to **estimate** $\Theta$, with:
+
+* $$\hat\Theta=\frac{S_{n}}{1+\frac{1}{2}+\frac{1}{3} .. \frac{1}{n-1}}$$
+
+This is useful because as you have an estimate of the parameter you can no estimate variables that go into calculating the statistic. For example given you have an estimate $\hat\Theta$ you can use this estimate in place of the statisitc to tell you something about the population from which this data derived:
+
+* $$\Theta=4N\mu$$
+
+The number of segregating sites ($S_{n}$) and the esitmate the number of pairwise differences ( $\pi$ ) can both be used the estimate $\Theta$. Both $\hat\Theta$ and $\hat\pi$ are unbiased estimators of $4N\mu$ id the process of evolution is neutral they should be roughly equal. Tajima's D is a measure of how these two estimators differ and can be calculated as.
+
+*  $$D_{T}=\frac{\hat{\pi} - \hat{\Theta}}{C}$$
+
+Where C is a normalizing constant chosed so that $D_{T}$ is above 2 or below -2. To calculate Tajima's D you need:
+
+* At least three DNA sequences
+
+***The Effective Size of Population***
+
+Natural populations seldom meet the assumptions of a Wirght-Fisher population. Some models have added to the Wright-Fisher to take into account violoations of these assumptions, but almost all agree that the variance in allele frequency (*between* populalations) is:
+
+* $$Var\{p'\} = \frac{pq}{2N_{e}}$$
+
+Where $N_{e}$ is the effective population size and $p$ and $q$ are allele frequencies. The varience effective population size $2N_{e}$ can be obtained directly from the varience in $p'$.
+
+In a Wirght-Fisher population the population size $2N$ **is** the effective population size $2N_{e}$:
+
+* $$Var\{p'\} = \frac{pq}{2N}$$
+
+What about factoring in **fluctuating population** size. For example you can consider two points in time with varying $2N_{e}$, where at each of these time points the population follows a Wright_Fisher model. Imagine the follwing:
+
++ A popluation with size = $N_{1}$ with probability $r$
++ or with size $N_{2}$ with probability $1-r$.
+
+**Note** that you can easily adapt this to time spent at each size. Say 50% of generations at N= 10 and 50% and N= 1000, the $N_{1}$ = 10 at r=0.5 and $N_{2}$ = 1000 at r-1 (also 0.5).
+
+so the mean varience $Var\{p'\}$ is:
+
+* $$Var\{p'\} = pq\bigg(\frac{r}{2N_{1}} + \frac{1-r}{2N_{2}}\bigg)$$
+
+In this case the effective population size is the harmonic mean of population sizes:
+
+* $$N_{e} = \frac{1}{ r\frac{1}{2N_{1}} + ( 1-r ) \frac{1}{2N_{2}} }$$
+
+Importantly the harmonic mean is always less than or equal to the arithmetic mean, "a classic inequality in mathematics". The harmoic mean is much more sensitive to small numbers, and Gillespie gives a good example which highlights the impact of population bottlenecks on effective popultation size. 
+
+* $N_{1}$ = 0.9 with p = 0.9
+* $N_{2}$ = 0.1 with p = 0.1
+
+the arithmetic mean = **901**
+
+but the harmonic mean is **91.4** an order of maginitude different.
+
+
+Now let's consider **inequality of sex ratios**. For example imagine a population where there are more males than females. In a dioecious species with $N_{m}$ males and $N_{f}$ females effective population size is:
+
+* $$N_{e} = \frac{4N_{m}N_{f}}{N_{f} + N_{m}}$$
+
+Try to model changes in $N_{e}$ due to unequal sex ratios in a population of 1000, 100,000 and 1,000,000
+
+```{r}
+#set up the population sizez
+popSizes<-c(1000,100000,1000000)
+#set up the range of % males
+percent<-seq(from = 1 , to =100, by = 2 )
+#now set up some empty vectors to fill
+Ne<-matrix(ncol = 3, nrow = length(percent), byrow= FALSE)
+
+#mow perform a loop
+for ( i in 1:length(popSizes) ) {
+  size<-popSize[i]
+  for ( j in  1:length(percent) ) {
+    per<-percent[j]
+    Nm<-size*per
+    Nf<-size*(100-per)
+    Ne[j,i]<-(4*Nf*Nm)/(Nm+Nf)
+  }#for
+}#for
+
+plot(percent, Ne[,3], type = "n")
+lines(percent, Ne[,1], lwd = 3, col ="red")
+lines(percent, Ne[,2], lwd = 3, col ="green")
+lines(percent, Ne[,3], lwd = 3, col ="blue")
+legend("topleft",legend=c("1000","100,000","1,000,000"), col = c("red","blue","green"), pch = 15)
+```
+
+
